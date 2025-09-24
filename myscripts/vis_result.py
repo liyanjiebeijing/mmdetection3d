@@ -14,5 +14,6 @@ show_result_meshlab(
     data,             # 输入数据（点云）
     result,           # 检测结果
     out_dir='vis_results',  # 输出目录
+    score_thr=0.5,
     show=False         # 如果有GUI环境可以弹窗
 )
