@@ -106,11 +106,11 @@ class Anchor3DRangeGenerator(object):
         multi_level_anchors = []
         for i in range(self.num_levels):
             anchors = self.single_level_grid_anchors(
-                featmap_sizes[i], self.scales[i], device=device)
+                featmap_sizes[i], self.scales[i], device=device) #[1, feature_dim, feature_dim, 4, 2, 9]
             if self.reshape_out:
                 anchors = anchors.reshape(-1, anchors.size(-1))
             multi_level_anchors.append(anchors)
-        return multi_level_anchors
+        return multi_level_anchors #list[1x200x200x4x2, 9]
 
     def single_level_grid_anchors(self, featmap_size, scale, device='cuda'):
         """Generate grid anchors of a single level feature map.
@@ -149,7 +149,7 @@ class Anchor3DRangeGenerator(object):
                     anchor_size,
                     self.rotations,
                     device=device))
-        mr_anchors = torch.cat(mr_anchors, dim=-3)
+        mr_anchors = torch.cat(mr_anchors, dim=-3)  #1, 200, 200, 4, 2, 9
         return mr_anchors
 
     def anchors_single_range(self,
@@ -314,23 +314,25 @@ class AlignedAnchor3DRangeGenerator(Anchor3DRangeGenerator):
         # torch.meshgrid default behavior is 'id', np's default is 'xy'
         rets = torch.meshgrid(x_centers[:feature_size[2]],
                               y_centers[:feature_size[1]],
-                              z_centers[:feature_size[0]], rotations)
+                              z_centers[:feature_size[0]], rotations) #400,400,1,2
 
         # torch.meshgrid returns a tuple rather than list
         rets = list(rets)
         tile_shape = [1] * 5
-        tile_shape[-2] = int(sizes.shape[0])
-        for i in range(len(rets)):
+        tile_shape[-2] = int(sizes.shape[0]) #1,1,1,1,1
+        for i in range(len(rets)): # 400,400,1,2 -> 400,400,1,1,2  -> 400,400,1,1,2,1
             rets[i] = rets[i].unsqueeze(-2).repeat(tile_shape).unsqueeze(-1)
 
-        sizes = sizes.reshape([1, 1, 1, -1, 1, 3])
+        sizes = sizes.reshape([1, 1, 1, -1, 1, 3]) #1,1,1,1,1,3
         tile_size_shape = list(rets[0].shape)
-        tile_size_shape[3] = 1
-        sizes = sizes.repeat(tile_size_shape)
-        rets.insert(3, sizes)
+        tile_size_shape[3] = 1 #400,400,1,1,2,1
+        sizes = sizes.repeat(tile_size_shape) #400,400,1,1,2,3
+        rets.insert(3, sizes) #
 
+        #400,400,1,1,2,7 -> 1,400,400,1,2,7 (x, y, z) -> (z, y, z)
         ret = torch.cat(rets, dim=-1).permute([2, 1, 0, 3, 4, 5])
 
+        #1,400,400,1,2,7 -> 1,400,400,1,2,9
         if len(self.custom_values) > 0:
             custom_ndim = len(self.custom_values)
             custom = ret.new_zeros([*ret.shape[:-1], custom_ndim])

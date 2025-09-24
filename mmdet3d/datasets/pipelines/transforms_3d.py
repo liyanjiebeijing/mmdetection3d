@@ -831,7 +831,7 @@ class GlobalRotScaleTrans(object):
                 input_dict['bbox3d_fields'] are updated in the result dict.
         """
         if 'transformation_3d_flow' not in input_dict:
-            input_dict['transformation_3d_flow'] = []
+            input_dict['transformation_3d_flow'] = []      
 
         self._rot_bbox_points(input_dict)
 

@@ -151,14 +151,14 @@ class Anchor3DHead(BaseModule, AnchorTrainMixin):
             tuple[torch.Tensor]: Contain score of each class, bbox
                 regression and direction classification predictions.
         """
-        cls_score = self.conv_cls(x)
-        bbox_pred = self.conv_reg(x)
+        cls_score = self.conv_cls(x) #(batch_size, num_anchors * num_classes, feature_height, feature_width)
+        bbox_pred = self.conv_reg(x) #(batch_size, num_anchors * box_code_size, feature_height, feature_width)
         dir_cls_preds = None
         if self.use_direction_classifier:
-            dir_cls_preds = self.conv_dir_cls(x)
+            dir_cls_preds = self.conv_dir_cls(x) #(batch_size, num_anchors * 2, feature_height, feature_width)
         return cls_score, bbox_pred, dir_cls_preds
 
-    def forward(self, feats):
+    def forward(self, feats): #feats: tuple(batch_size, channels, feature_height, feature_width)
         """Forward pass.
 
         Args:
@@ -187,8 +187,8 @@ class Anchor3DHead(BaseModule, AnchorTrainMixin):
         # since feature map sizes of all images are the same, we only compute
         # anchors for one time
         multi_level_anchors = self.anchor_generator.grid_anchors(
-            featmap_sizes, device=device)
-        anchor_list = [multi_level_anchors for _ in range(num_imgs)]
+            featmap_sizes, device=device) #list [1, feature_dim, feature_dim, 4, 2, 9]
+        anchor_list = [multi_level_anchors for _ in range(num_imgs)] #list[list [1, feature_dim, feature_dim, 4, 2, 9]]
         return anchor_list
 
     def loss_single(self, cls_score, bbox_pred, dir_cls_preds, labels,
@@ -224,7 +224,7 @@ class Anchor3DHead(BaseModule, AnchorTrainMixin):
             cls_score, labels, label_weights, avg_factor=num_total_samples)
 
         # regression loss
-        bbox_pred = bbox_pred.permute(0, 2, 3,
+        bbox_pred = bbox_pred.permute(0, 2, 3, #(batch_size, feature_height, feature_width, num_anchors * box_code_size)
                                       1).reshape(-1, self.box_code_size)
         bbox_targets = bbox_targets.reshape(-1, self.box_code_size)
         bbox_weights = bbox_weights.reshape(-1, self.box_code_size)
@@ -303,12 +303,12 @@ class Anchor3DHead(BaseModule, AnchorTrainMixin):
 
     @force_fp32(apply_to=('cls_scores', 'bbox_preds', 'dir_cls_preds'))
     def loss(self,
-             cls_scores,
-             bbox_preds,
-             dir_cls_preds,
-             gt_bboxes,
-             gt_labels,
-             input_metas,
+             cls_scores,  # list (batch_size, num_anchors * num_classes, feature_height, feature_width)
+             bbox_preds,  # list (batch_size, num_anchors * box_code_size, feature_height, feature_width)
+             dir_cls_preds, # list (batch_size, num_anchors * 2, feature_height, feature_width)
+             gt_bboxes, # list LiDARInstance3DBoxes with count=batch_size
+             gt_labels, # list Tensor with count=batch_size
+             input_metas, # list data infos with count=batch_size
              gt_bboxes_ignore=None):
         """Calculate losses.
 
@@ -337,7 +337,7 @@ class Anchor3DHead(BaseModule, AnchorTrainMixin):
         assert len(featmap_sizes) == self.anchor_generator.num_levels
         device = cls_scores[0].device
         anchor_list = self.get_anchors(
-            featmap_sizes, input_metas, device=device)
+            featmap_sizes, input_metas, device=device) #list list: batch_size(4), levels(3), anchors_count, 9
         label_channels = self.cls_out_channels if self.use_sigmoid_cls else 1
         cls_reg_targets = self.anchor_target_3d(
             anchor_list,
@@ -361,11 +361,11 @@ class Anchor3DHead(BaseModule, AnchorTrainMixin):
         losses_cls, losses_bbox, losses_dir = multi_apply(
             self.loss_single,
             cls_scores,
-            bbox_preds,
+            bbox_preds, #list (batch_size, num_anchors * box_code_size, feature_height, feature_width)
             dir_cls_preds,
-            labels_list,
+            labels_list,  #list [4,320000] [4,80000] [4,20000]
             label_weights_list,
-            bbox_targets_list,
+            bbox_targets_list, #list [4,320000,9] [4,80000,9] [4,20000,9]
             bbox_weights_list,
             dir_targets_list,
             dir_weights_list,

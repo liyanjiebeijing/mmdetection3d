@@ -11,6 +11,7 @@ model = dict(
         point_cloud_range=[-50, -50, -5, 50, 50, 3],
         voxel_size=voxel_size,
         max_voxels=(30000, 40000)),
+
     pts_voxel_encoder=dict(
         type='HardVFE',
         in_channels=4,
@@ -21,8 +22,10 @@ model = dict(
         with_voxel_center=True,
         point_cloud_range=[-50, -50, -5, 50, 50, 3],
         norm_cfg=dict(type='naiveSyncBN1d', eps=1e-3, momentum=0.01)),
+
     pts_middle_encoder=dict(
         type='PointPillarsScatter', in_channels=64, output_shape=[400, 400]),
+
     pts_backbone=dict(
         type='SECOND',
         in_channels=64,
@@ -30,6 +33,7 @@ model = dict(
         layer_nums=[3, 5, 5],
         layer_strides=[2, 2, 2],
         out_channels=[64, 128, 256]),
+
     pts_neck=dict(
         type='FPN',
         norm_cfg=dict(type='naiveSyncBN2d', eps=1e-3, momentum=0.01),
@@ -38,6 +42,7 @@ model = dict(
         out_channels=256,
         start_level=0,
         num_outs=3),
+
     pts_bbox_head=dict(
         type='Anchor3DHead',
         num_classes=10,
@@ -61,6 +66,7 @@ model = dict(
         diff_rad_by_sin=True,
         dir_offset=-0.7854,  # -pi / 4
         bbox_coder=dict(type='DeltaXYZWLHRBBoxCoder', code_size=9),
+
         loss_cls=dict(
             type='FocalLoss',
             use_sigmoid=True,
@@ -68,6 +74,7 @@ model = dict(
             alpha=0.25,
             loss_weight=1.0),
         loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0),
+        
         loss_dir=dict(
             type='CrossEntropyLoss', use_sigmoid=False, loss_weight=0.2)),
     # model training and testing settings

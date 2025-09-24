@@ -86,15 +86,16 @@ class AnchorTrainMixin(object):
         num_total_pos = sum([max(inds.numel(), 1) for inds in pos_inds_list])
         num_total_neg = sum([max(inds.numel(), 1) for inds in neg_inds_list])
         # split targets to a list w.r.t. multiple levels
-        labels_list = images_to_levels(all_labels, num_level_anchors)
-        label_weights_list = images_to_levels(all_label_weights,
+        labels_list = images_to_levels(all_labels, num_level_anchors) # list [[4, 320000], [4, 80000], [4, 20000])
+
+        label_weights_list = images_to_levels(all_label_weights,# list [[4, 320000], [4, 80000], [4, 20000])
                                               num_level_anchors)
-        bbox_targets_list = images_to_levels(all_bbox_targets,
+        bbox_targets_list = images_to_levels(all_bbox_targets,  # list [[4, 320000, 9], [4, 80000, 9], [4, 20000, 9])
                                              num_level_anchors)
-        bbox_weights_list = images_to_levels(all_bbox_weights,
+        bbox_weights_list = images_to_levels(all_bbox_weights,  # list [[4, 320000, 9], [4, 80000, 9], [4, 20000, 9])
                                              num_level_anchors)
-        dir_targets_list = images_to_levels(all_dir_targets, num_level_anchors)
-        dir_weights_list = images_to_levels(all_dir_weights, num_level_anchors)
+        dir_targets_list = images_to_levels(all_dir_targets, num_level_anchors) # list [[4, 320000], [4, 80000], [4, 20000])
+        dir_weights_list = images_to_levels(all_dir_weights, num_level_anchors) # list [[4, 320000], [4, 80000], [4, 20000])
         return (labels_list, label_weights_list, bbox_targets_list,
                 bbox_weights_list, dir_targets_list, dir_weights_list,
                 num_total_pos, num_total_neg)
